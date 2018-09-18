@@ -1,0 +1,62 @@
+:bibtex-file: bibliography.bib
+:xrefstyle: short
+
+= Visualising Space-Time Data
+TODO: introduction to what the blog post is about
+
+== The problem
+Visually analysing time-dependent data is a common task in many fields. This however becomes problematic when the data is collected in a spatial context. The longstanding problem is: how does one visualise 2- or 3-dimensional data that evolves over time using computer screens and paper? In other words, how do you visualise 4-dimensional data on mediums that are inherently 2-dimensional?
+There are different approaches one can take.
+
+The first option is reducing the dimensionality of your data. For example, link:https://en.wikipedia.org/wiki/Principal_component_analysis[Principal Component Analysis] and link:https://en.wikipedia.org/wiki/Self-organizing_map[Self-Organising Maps] can sometimes be used to produce a "good-enough" 2-dimensional representation of 3-dimensional data. More simply, some problems do not require all of the original dimensions: for example, movement data on a flat terrain do not require an extra dimension to represent altitude.
+
+A second option is to use time as an extra dimension. This is nothing new: for more than a century people have been using a fast-changing sequence of images to trick the eye in perceiving something as smoothly moving over time. We call those movies, animations, films and so on. Animations augment your medium of visualisation by a dimension, giving you more space of maneuver to represent your data.
+
+Another option is to use stereoscopic images to transmit to the brain a third dimension using a 2-dimensional medium. The method relies on the ability of the brain to "understand" two images (of a 3-dimensional scene) taken at slightly different angles as 3-dimensional scene. This, however, requires that each image is sent to one of the eyes; options to accomplish this include 1) link:https://en.wikipedia.org/wiki/Virtual_reality_headset[Virtual Reality headsets], 2) link:https://en.wikipedia.org/wiki/Polarized_3D_system[polarised glasses], 3) link:https://en.wikipedia.org/wiki/Anaglyph_3D[bi-colored goggles] and 4) simply crossing your eyes (see <<stereogram>>). The requirement for additional equipment and the awkwardness of crossing one's eyes makes this option not widely viable.
+[#stereogram]
+.Hyades - the movement of stars in 300,000 years. To view this picture you need link:https://en.wikipedia.org/wiki/Stereoscopy#Side-by-side[cross-eyed viewing] (source: link:https://cs.wikipedia.org/wiki/Soubor:Astro_4D_hyades_cr_anim.gif[Wikipedia]).
+[link=https://cs.wikipedia.org/wiki/Soubor:Astro_4D_hyades_cr_anim.gif]
+image::images/4D_hyades.gif[Hyades in 3D through time,300,200,align="center"]
+
+One more option is to simulate an extra dimension on a 2-dimensional medium. This has been done for decades in movies and video-games: the scene is shown as flat, but the brain perceives it in 3 dimensions. This can be accomplished using link:https://en.wikipedia.org/wiki/Perspective_(graphical)[perspective] and link:https://en.wikipedia.org/wiki/Parallax[parallax movement], which transmit depth information to the brain.
+
+In this blog post we focus on the latter option, and in particular on how to achieve an interactive 3-dimensional visualisation in Python using the link:https://plot.ly/[Plotly] library. Plotly provides the perspective representation out-of-the box, and its plots are interactive, which provides the movement much needed by the brain.
+This type of visualisation is called a _space-time cube_, and was invented in the 70s by Torsten Hägerstraand cite:[hagerstraand1970people].
+
+
+== Plotly limitation and workaround
+When representing data whose context is spatial, plotting a terrain is most helpful to understand "where" the data points are located. Unfortunately, Plotly at the moment link:https://github.com/plotly/plotly.js/issues/1650[does not support] plotting a 2-dimensional image in a 3-dimensional plot (e.g. sticking it onto a plan embedded in the 3D scene).
+
+However, it does support coloring a flat surface with a _heatmap_ based on some value. We will bend this feature to our needs; that is, to visually represent an approximation of a terrain.
+
+As a use-case, we will take a video game, link:http://www.dota2.com/[_Defense of the Ancients 2_] (more commonly known as _DotA 2_). The game sees 2 teams of 5 players each, each team controlling half of the map, and having a base deep in their controlled area. The two teams fight each other with the objective to destroy the opponents base. <<dota2_map>> shows a sketch of the map.
+
+[#dota2_map]
+.The map used in DotA 2 (version 7.07, source: https://dota2.gamepedia.com/File:Minimap_7.07.png[Gamepedia]).
+[link=https://dota2.gamepedia.com/File:Minimap_7.07.png]
+image::images/dota2_minimap.png[Hyades in 3D through time,300,200,align="center"]
+
+We can load and display the map in Numpy with the following code. We are also roughly trimming the edges.
+
+.Load and show map
+[#listing:k-means]
+----
+%matplotlib inline
+from imageio import imread
+from matplotlib.pyplot import imshow
+
+img = imread('Minimap_7.07.png')
+img = img[30:-50, 10:-15, :] # hand-coded
+
+# Result
+imshow(img)
+print(img.dtype, img.shape)
+----
+
+Next thing to do is to resize the image, because ... Or should we?
+
+
+
+
+== Bibliography
+bibliography::[]
