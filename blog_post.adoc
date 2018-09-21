@@ -365,7 +365,7 @@ layout = go.Layout(
 )
 fig = go.Figure(data=go.Data([surf] + traces), layout=layout)
 iplot(fig, filename='dota2-terrain-and-paths')
-plot(fig, filename='dota.html', auto_open=False)
+plot(fig, filename='dota2-space-time-cube.html', auto_open=False)
 ----
 
 ++++
@@ -404,6 +404,10 @@ colors = np.array(solution.tour)
 print(colors.shape)
 show_colors(colors)
 ----
+
+++++
+<iframe src="dota2-terrain-improved.html" height="850" width="950" frameborder="0"></iframe>
+++++
 
 == Bibliography
 bibliography::[]
