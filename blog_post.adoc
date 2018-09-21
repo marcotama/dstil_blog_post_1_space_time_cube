@@ -1,6 +1,7 @@
 :last-update-label!:
 :bibtex-file: bibliography.bib
 :xrefstyle: short
+:source-highlighter: coderay
 
 = Visualising Space-Time Data
 TODO: introduction to what the blog post is about
@@ -46,7 +47,8 @@ image::images/dota2_minimap.png[Hyades in 3D through time,300,200,align="center"
 To start with, we need to reduce the number of colors present in the image. We can achieve this in several ways. To keep this blog post limited, we will use an external tool, link:http://www.imagemagick.org/Usage/quantize/#colors[ImageMagick] to do the job. While we are at it, we will also crop and resize the image, because high resolutions are rendered slowly and high numbers of colours will look worse (more on this later).
 
 .Resize and reduce the number of colors in the image
-[#listing:resize-and-dither-image,bash]
+[#listing:resize-and-dither-image]
+[source,bash]
 ----
 convert Minimap_7.07.png \
   -crop 1000x940+10+30 \
@@ -55,13 +57,50 @@ convert Minimap_7.07.png \
   Minimap_7.07_adjusted.png
 ----
 
+I am assuming you are running the code in a link:https://jupyter.org/[Jupyter Notebook]. The requirements for running the code in this blog post are:
 
-We can load and display the image using Python with the following code.
+.Requirements list
+[source]
+----
+Cython==0.28.2
+numpy==1.14.2
+pandas==0.23.0
+matplotlib==2.2.2
+plotly==2.5.1
+scikit-image==0.14.0
+imageio==2.3.0
+colormath==3.0.0
+ACO-Pants==0.5.2
+----
+
+First of all, let's import all the modules and functions we will need.
+
+.Import all the tools we need
+[#listing:load-image]
+[source,python]
+----
+import re
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+from copy import deepcopy
+from imageio import imread
+from matplotlib.pyplot import imshow
+from plotly.offline import init_notebook_mode, iplot, plot
+init_notebook_mode(connected=True)
+
+%matplotlib inline
+----
+
+We can now load and display the image using Python with the following code.
 
 .Load and show map
-[#listing:load-image,python]
+[#listing:load-image]
+[source,python]
 ----
-img = imread('Minimap_7.07_adjusted.png')
+# Load and display
+img = imread('Minimap_7.07_resized_dithered.png')
 imshow(img)
 print(img.dtype, img.shape)
 ----
@@ -71,7 +110,8 @@ The next step is to find the unique colors chosen by ImageMagick; that is, all t
 We can also display the colors found.
 
 .Find colors palette
-[#listing:find-colors,python]
+[#listing:find-colors]
+[source,python]
 ----
 # Find colors
 img_array = img[:, :, :3].reshape((img.shape[0] * img.shape[1], 3))
@@ -93,8 +133,10 @@ Python informs us that there are 32 colors, which is what we expect since that i
 We then use the colors to create a custom Plotly colormap, which is nothing but a list of tuples with a float as first element and a string in the format `'rgb({}, {}, {})'` as second element, with integer values in the range 0-255. Plotly uses link:https://en.wikipedia.org/wiki/Linear_interpolation[linear interpolation] to determine the colors in between the points we provide.
 
 .Create a custom Plotly colormap
-[#listing:create-colormap,python]
+[#listing:create-colormap]
+[source,python]
 ----
+# Create a custom colormap
 color_to_value = {tuple(color[:3]): i / (n_colors - 1) for i, color in enumerate(colors)}
 my_cmap_ply = [(value, 'rgb({}, {}, {})'.format(*color)) for color, value in color_to_value.items()]
 ----
@@ -102,17 +144,21 @@ my_cmap_ply = [(value, 'rgb({}, {}, {})'.format(*color)) for color, value in col
 Now that we have a colormap, we map each pixel to the value that in the colormap corresponds to its color.
 
 .Convert RGBs to appropriate values based on the colormap
-[#listing:convert-pixels,python]
+[#listing:convert-pixels]
+[source,python]
 ----
+# Map pixels to values
 fun_find_value = lambda x: color_to_value[tuple(x[:3])]
 values = np.apply_along_axis(fun_find_value, 2, img)
 ----
 
-We are now ready to show (and save) the terrain map in a 3-dimensional plot.
+We are now ready to show the terrain map in a 3-dimensional plot.
 
-.Show terrain
-[#listing:show-terrain,python]
+.Show the map on a 3D interactive plot
+[#listing:show-terrain]
+[source,python]
 ----
+# Display terrain
 yy = np.linspace(0, 1, img.shape[0])
 xx = np.linspace(0, 1, img.shape[1])
 zz = np.zeros(img.shape[:2])
@@ -124,17 +170,209 @@ surf = go.Surface(
     showscale=False
 )
 fig = go.Figure(data=go.Data([surf]), layout=go.Layout())
-
-
-plot(fig, filename='dota2-terrain.html', auto_open=False)
 iplot(fig)
 ----
 
+++++
+<iframe src="dota2-terrain.html" height="850" width="950" frameborder="0"></iframe>
+++++
 
-TODO: add lines for data
+
+== Add player movements
+The terrain is nice and all, but it is not very useful in itself. The core point of space-time cubes is visualising data, so let's add data!
+
+The good Prof. Anders Drachen from the link:http://www.digitalcreativity.ac.uk/[DC Labs] at University of York happens to have a dataset of DotA2 games, including movement data. The dataset is not publicly available, but he allowed to showcase a match for this blog post.
+
+The data of each match consists in a CSV file with a series of columns containing heroes data over time, plus a column indicating the time, labelled `tick`. Among the columns there are spatial coordinates, deaths cumulative counters and a flag indicating whether the hero was alive at the time (as opposed to being dead and waiting to respawn), which is the data we will use. Column names follow a specific pattern, which can be matched against to extract information about the players. The data in all columns (except time) is sparse, meaning that values are only present when a value changes. Let's load the data, forward-fill the data and visualise a random row:
+
+.Load, ffill and display data
+[source,python]
+----
+# Load and display data
+df = pd.read_csv('2842231742.csv')
+cols = [col for col in df.columns if
+        col.startswith('X_') or
+        col.startswith('Y_') or
+        col.startswith('Deaths_') or
+        col.startswith('IsAlive_')
+       ] + ['tick']
+df = df[cols]
+df.ffill(inplace=True)
+print(df.iloc[1000,:])
+----
+which outputs
+----
+Deaths_0_R_enigma_L                  0.00000
+IsAlive_0_R_enigma_L                 1.00000
+X_0_R_enigma_L                   -5029.00000
+Y_0_R_enigma_L                    1187.00000
+...
+Deaths_9_D_juggernaut_W              2.00000
+IsAlive_9_D_juggernaut_W             1.00000
+X_9_D_juggernaut_W               -5471.00000
+Y_9_D_juggernaut_W                5630.00000
+tick                               176.70154
+Name: 1000, dtype: float64
+----
+
+Now let's extract players information from the columns and have a look at it:
+
+.Extract players information
+[source,python]
+----
+# Infer players data from column names
+players = set()
+pattern = re.compile(r'[^_]+_([0-9])_(R|D)_([a-z_]+)_(W|L)')
+for col in df.columns:
+    match = re.match(pattern, col)
+    if match:
+        player_id, team, hero, outcome = match.groups()
+        players.add((player_id, team, hero, outcome))
+print("\n".join([str(t) for t in sorted(players)]))
+----
+which outputs
+----
+('0', 'R', 'enigma', 'L')
+('1', 'R', 'life_stealer', 'L')
+('2', 'R', 'axe', 'L')
+('3', 'R', 'witch_doctor', 'L')
+('4', 'R', 'earth_spirit', 'L')
+('5', 'D', 'ursa', 'W')
+('6', 'D', 'disruptor', 'W')
+('7', 'D', 'bounty_hunter', 'W')
+('8', 'D', 'legion_commander', 'W')
+('9', 'D', 'juggernaut', 'W')
+----
+
+Now we have player IDs, their team, hero names and whether the team won or lost. Instead of generating movement traces straight-away, we will first create a dictionary containing the style for each hero in Plotly format. We will refer to these styles later, when plotting the legend.
+
+.Setting the styles
+[source,python]
+----
+# Set styles
+styles = {}
+for player_id, team, hero, outcome in players:
+    color = '#0088FF' if team == 'D' else '#FF530D'
+    styles[hero] = {
+        'mode': 'lines',
+        'line': go.Line(color=color),
+        'legendgroup': hero.replace('_', ' ').title(),
+        'name': '{hero} ({team})'.format(hero=hero.replace('_', ' ').title(), team=team)
+    }
+----
+
+The next step is to generate Plotly traces by iterating through players.
+Instead of drawing a continuous line start-to-end, we will split the data of each hero using the deaths counter column. We do this because in DotA2, when heroes die, they re-appear in their base: deaths would be shown as long, straight lines, which could be confusing.
+
+.Generating movement traces
+[source,python]
+----
+# Generate movement traces
+traces = []
+col_suffix_pattern = '_{player_id}_{team}_{hero}_{outcome}'
+for player_id, team, hero, outcome in players:
+    col_suffix = col_suffix_pattern.format(player_id=player_id, team=team, hero=hero, outcome=outcome)
+    for _, sub_df in df.groupby('Deaths' + col_suffix):
+        sub_df = sub_df[sub_df['IsAlive' + col_suffix] == 1]
+        xx = sub_df['X' + col_suffix].values
+        yy = sub_df['Y' + col_suffix].values
+        zz = sub_df['tick'].values
+        style = styles[hero]
+        trace = go.Scatter3d(
+            x=xx, y=yy, z=zz,
+            showlegend=False,
+            **style
+        )
+        traces.append(trace)
+----
+
+Instead, we will draw death "teleportations" as dashed lines.
+
+.Generating death teleportation traces
+[source,python]
+----
+# Generate death traces
+for player_id, team, hero, outcome in players:
+    col_suffix = col_suffix_pattern.format(player_id=player_id, team=team, hero=hero, outcome=outcome)
+
+    spawn_locs, death_locs = [], [(np.nan, np.nan, np.nan)]
+    for _, sub_df in df.groupby('Deaths' + col_suffix):
+        sub_df = sub_df[sub_df['IsAlive' + col_suffix] == 1]
+        xx = sub_df['X' + col_suffix].values
+        yy = sub_df['Y' + col_suffix].values
+        zz = sub_df['tick'].values
+        # Save spawn and death location for this "life"
+        spawn_locs.append((xx[0], yy[0], zz[0]))
+        death_locs.append((xx[-1], yy[-1], zz[-1]))
+    spawn_locs.append((np.nan, np.nan, np.nan))
+
+    # Pairwise iterate death and spawn locations (misaligned on purpose with those NaNs)
+    for death_loc, spawn_loc in zip(death_locs, spawn_locs):
+        style = deepcopy(styles[hero])
+        style['line'] = go.Line(color=style['line']['color'], dash='dash')
+        xx = [death_loc[0], spawn_loc[0]]
+        yy = [death_loc[1], spawn_loc[1]]
+        zz = [death_loc[2], spawn_loc[2]]
+        trace = go.Scatter3d(
+            x=xx, y=yy, z=zz,
+            showlegend=False,
+            **style
+        )
+        traces.append(trace)
+----
+
+The last step is t to add a legend, hero-by-hero, which can be used to turn off single lines (hence having a style for each hero instead of one per team).
+
+.Setting up the legend
+[source,python]
+----
+# Setup legend
+for legend_group, style in styles.items():
+    trace = go.Scatter3d(
+        x=[np.nan], y=[np.nan], z=[np.nan],
+        **style
+    )
+    traces.append(trace)
+----
+
+The final step is to generate (and save) the final result.
+
+.Visualising the result
+[source,python]
+----
+yy = np.linspace(-8000, +8000, img.shape[0])
+xx = np.linspace(-8000, +8000, img.shape[1])
+zz = np.full(img.shape[:2], -90)
+
+surf = go.Surface(
+    x=xx, y=yy, z=zz,
+    colorscale=my_cmap_ply,
+    surfacecolor=values,
+    showscale=False
+)
 
 
-=== Bonus
+layout = go.Layout(
+    width=800,
+    height=800,
+    margin=dict(l=0,r=0,b=0,t=0),
+    scene=go.Scene(
+        xaxis=go.XAxis(title='', showticklabels=False),
+        yaxis=go.YAxis(title='', showticklabels=False),
+        zaxis=go.ZAxis(title='Time (s)'),
+        aspectratio=dict(x=1, y=1, z=1.8)
+    )
+)
+fig = go.Figure(data=go.Data([surf] + traces), layout=layout)
+iplot(fig, filename='dota2-terrain-and-paths')
+plot(fig, filename='dota.html', auto_open=False)
+----
+
+++++
+<iframe src="dota2-space-time-cube.html" height="850" width="950" frameborder="0"></iframe>
+++++
+
+=== Bonus - improving the map looks
 If you zoom in on the terrain, you can notice artifacts between colors. This is an unwanted consequence of bringing down a 3-dimensional space (the space of RGB colors) to a 1-dimensional space (the colormap). When we did that, we artificially put an order to the colors, and now when Plotly wants to smoothly transition from color A to color B, it will use all the colors in between A and B.
 Since the colors are arranged in whatever order numpy found them in, it can happen that black is in between two shades of green: this will cause there being a black line between any two adjacent pixels with those shades of green. There is no way around this, but there is a way to mitigate this effect: sorting the colors such that they are in a "visually smooth" order, whatever that means.
 
@@ -146,7 +384,8 @@ We can use the library to solve our colors sorting problem if we can provide a f
 We are all set to solve the problem.
 
 .Sort colors "visually"
-[#listing:sort-colors,python]
+[#listing:sort-colors]
+[source,python]
 ----
 # Sort colors
 from colormath.color_diff import delta_e_cie2000
@@ -158,7 +397,7 @@ def rgb_distance(color1, color2):
     color2 = sRGBColor(*color2)
     color1 = convert_color(color1, LabColor)
     color2 = convert_color(color2, LabColor)
-    return float(delta_e_cie1976(color1, color2))
+    return float(delta_e_cie2000(color1, color2))
 colors = [tuple(c) for c in colors]
 solution = Solver().solve(World(colors, rgb_distance))
 colors = np.array(solution.tour)

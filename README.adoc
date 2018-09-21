@@ -1,0 +1,22 @@
+:source-highlighter: coderay
+= DSTIL Blog post #1 - Space time cubes
+
+== Installation
+This section includes instructions to setup an environment to compile the paper.
+
+=== Mac OS
+Run the following commands to install the tools required to compile the blog post.
+
+[source,bash]
+----
+brew install pandoc
+gem install asciidoctor asciidoctor-bibtex unicode coderay
+----
+
+== Compilation
+To compile the paper, run either of the instructions below.
+
+[source,bash]
+----
+bash compile.sh
+----
