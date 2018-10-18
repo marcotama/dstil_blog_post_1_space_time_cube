@@ -12,4 +12,4 @@ echo -n "Generating DOCX..."
 pandoc -f html -s "${DOCUMENT}.html" -t docx -o "${DOCUMENT}.docx"
 echo " Done"
 
-zip -r "${DOCUMENT}.zip" "${DOCUMENT}.html" "${DOCUMENT}.docx" images/ fonts/
+zip -r "${DOCUMENT}.zip" "${DOCUMENT}.html" "${DOCUMENT}.docx" dota2*.html images/ fonts/
