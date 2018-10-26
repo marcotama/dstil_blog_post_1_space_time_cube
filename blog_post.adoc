@@ -20,6 +20,11 @@ A third option is to *use stereoscopic images* to transmit to the brain a third 
 [link=https://cs.wikipedia.org/wiki/Soubor:Astro_4D_hyades_cr_anim.gif]
 image::images/4D_hyades.gif[Hyades in 3D through time,300,200,align="center"]
 
+link:https://en.m.wikipedia.org/wiki/Chromostereopsis[Chromostereopsis] is another option, which we mention for completeness even though it is probably too rudimental to be a valid alternative. Chromostereopsis is a visual illusion whereby different colors physically lying at the same distance from the eye are perceived at slight different distances. The effect is due to link:https://en.m.wikipedia.org/wiki/Chromatic_aberration[chromatic aberration], where an imperfect lens, such as the human pupil, *refracts different wavelengths differently* and causes them to be perceived at different distances. The effect is subtle and arguably annoying, but it has widely been used to create visual illusions.
+[#chromostereopsis]
+.An example of chromostereopsis: the red circle on the inside should look like it is slightly deeper than the blue ring on the outside.
+image::images/Chromostereopsis.jpeg[An example of chromostereopsis,300,200,align="center"]
+
 One more option is to *simulate an extra dimension* on a 2-dimensional medium. This has been done for decades in movies and video-games: the scene is shown as flat, but the brain perceives it in 3 dimensions. This can be accomplished using link:https://en.wikipedia.org/wiki/Perspective_(graphical)[perspective] and link:https://en.wikipedia.org/wiki/Parallax[parallax movement], which transmit depth information to the brain.
 
 In this blog post we focus on the latter option, and in particular on how to achieve an interactive 3-dimensional visualisation in Python using the link:https://plot.ly/[Plotly] library. Plotly provides the perspective representation out-of-the box, and its plots are interactive, which provides the movement much needed by the brain to interpret the plot effectively.
@@ -79,7 +84,7 @@ ACO-pants==0.5.2
 First of all, let's import all the modules and functions we will need.
 
 .Import all the tools we need
-[#listing:load-image]
+[#listing:import]
 [source,python]
 ----
 import re
