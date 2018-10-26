@@ -1,10 +1,8 @@
 :source-highlighter: coderay
 = DSTIL Blog post #1 - Space time cubes
 
-== Installation
-This section includes instructions to setup an environment to compile the paper.
+== Blog Post
 
-=== Mac OS
 Run the following commands to install the tools required to compile the blog post.
 
 [source,bash]
@@ -13,10 +11,29 @@ brew install pandoc
 gem install asciidoctor asciidoctor-bibtex unicode coderay
 ----
 
-== Compilation
-To compile the paper, run either of the instructions below.
+To compile the blog post, run the command below.
 
 [source,bash]
 ----
 bash compile.sh
+----
+
+
+== Jupyter Notebook
+
+Create and setup a new Anaconda environment by running:
+
+[source,bash]
+----
+conda create --name blog-post-env python=3.6
+pip install -r requirements.txt
+conda install nb_conda
+----
+
+To run the notebook, run the following commands:
+
+[source,bash]
+----
+conda activate blog-post-env
+jupyter notebook
 ----
