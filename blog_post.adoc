@@ -4,7 +4,12 @@
 :source-highlighter: coderay
 
 = Visualising Space-Time Data
-TODO: introduction to what the blog post is about
+
+== Introduction
+In this blog post we will show how to visualise *space-time data* using a visualisation called _space-time cube_ using Python and Plotly.
+A space-time cube is a 3D cartesian plot where one of the three axes (the vertical, usually) represents time, while the others represent space.
+Plotly allows us to produce interactive visualisations, which are much easier to inspect than static "snapshots" of space-time cubes.
+
 
 == The problem
 Visually analysing time-dependent data is a common task in many fields. This, however, becomes problematic when the data is collected in a spatial context. The longstanding problem is: how does one visualise 2 or 3-dimensional data that evolves over time using computer screens and paper? In other words, how do you visualise 4-dimensional data on mediums that are inherently 2-dimensional?
@@ -57,25 +62,26 @@ To start with, we need to reduce the number of colours present in the image. We 
 ----
 convert Minimap_7.07.png \
   -crop 1000x940+10+30 \
-  -resize 160000@ \
-  +dither -colors 32 \
-  Minimap_7.07_32colors.png
+  -resize 640000@ \
+  +dither \
+  -colors 64 \
+  Minimap_7.07_64colors.png
 ----
 
-I am assuming you are running the code in a link:https://jupyter.org/[Jupyter Notebook]. The requirements for running the code in this blog post are:
+I will be assuming you are running the code in a link:https://jupyter.org/[Jupyter Notebook]. The requirements for running the code in this blog post are:
 
 .Requirements list
 [source]
 ----
-Cython==0.28.2
-numpy==1.14.2
-scipy==1.0.1
-pandas==0.23.0
-scikit-learn==0.19.1
-matplotlib==2.2.2
-plotly==2.5.1
-scikit-image==0.14.0
-imageio==2.3.0
+Cython==0.29.14
+numpy==1.17.4
+scipy==1.4.0
+pandas==0.25.3
+scikit-learn==0.22
+matplotlib==3.1.2
+plotly==4.4.1
+scikit-image==0.16.2
+imageio==2.6.1
 Jupyter==1.0.0
 colormath==3.0.0
 ACO-pants==0.5.2
@@ -88,6 +94,7 @@ First of all, let's import all the modules and functions we will need.
 [source,python]
 ----
 import re
+import subprocess
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -95,9 +102,8 @@ import plotly.graph_objs as go
 from copy import deepcopy
 from imageio import imread
 from matplotlib.pyplot import imshow
-from plotly.offline import init_notebook_mode, iplot, plot
+from plotly.offline import init_notebook_mode, iplot
 init_notebook_mode(connected=True)
-
 %matplotlib inline
 ----
 
@@ -107,10 +113,10 @@ We can now load and display the image using Python with the following code.
 [#listing:load-image]
 [source,python]
 ----
-# Load and display
-img = imread('Minimap_7.07_resized_dithered.png')
+img = imread('images/Minimap_7.07.png') / 255
+plt.figure(figsize = (10,10))
 imshow(img)
-print(img.dtype, img.shape)
+print(f"Size: {img.shape[0]}x{img.shape[1]} {img.dtype}")
 ----
 
 Python informs us that this image has a resolution of 387x412, with 4 values for the colours (RGB plus alpha).
@@ -121,23 +127,21 @@ We can also display the colours found.
 [#listing:find-colors]
 [source,python]
 ----
-# Find colours
+# Find and show unique colors
 img_array = img[:, :, :3].reshape((img.shape[0] * img.shape[1], 3))
 colors = np.unique(img_array, axis=0)
 n_colors = colors.shape[0]
-print(colors.shape)
 
-# Show colours
 def show_colors(colors):
-    colors_matrix = np.reshape(colors, [4, n_colors // 4, 3])
-    imshow(np.reshape(colors, (1, -1, 3)))
+    # colors_matrix = np.reshape(colors, [4, n_colors // 4, 3])
+    imshow(np.reshape(colors, (1, -1, 3)), aspect='auto')
     plt.xticks([])
     plt.yticks([])
     plt.gcf().set_size_inches(10, 1)
 show_colors(colors)
 ----
 
-Python informs us that there are 32 colours, which is what we expect since that is how many colours we asked ImageMagick to use.
+Python informs us that there are 64 colours, which is what we expect since that is how many colours we asked ImageMagick to use.
 We then use the colours to create a custom Plotly colormap, which is nothing but a list of tuples with a float as first element and a string in the format `'rgb({}, {}, {})'` as second element, with integer values in the range 0-255. Plotly uses link:https://en.wikipedia.org/wiki/Linear_interpolation[linear interpolation] to determine the colours in between the points we provide.
 
 .Create a custom Plotly colormap
@@ -157,7 +161,7 @@ Now that we have a colormap, we map each pixel to the value that corresponds to 
 ----
 # Map pixels to values
 fun_find_value = lambda x: color_to_value[tuple(x[:3])]
-values = np.apply_along_axis(fun_find_value, 2, img)
+values = np.apply_along_axis(fun_find_value, 2, np.flipud(img))
 ----
 
 We are now ready to show the terrain map in a 3-dimensional plot.
@@ -177,19 +181,19 @@ surf = go.Surface(
     surfacecolor=values,
     showscale=False
 )
-fig = go.Figure(data=go.Data([surf]), layout=go.Layout())
-iplot(fig)
+fig = go.Figure(data=[surf], layout=go.Layout())
+iplot(fig, filename='terrain.html')
 ----
 
-++++
-<iframe src="dota2-terrain.html" height="850" width="950" frameborder="0"></iframe>
-++++
-
+//++++
+//<iframe src="terrain-64colors.html" height="850" width="950" frameborder="0"></iframe>
+//++++
+video::sNwFQeU1brA[youtube,width=800,height=600]
 
 == Add player movements
 The terrain is nice and all, but it is not very useful in itself. The core point of space-time cubes is visualising data, so let's add data!
 
-The good Prof. Anders Drachen from the link:http://www.digitalcreativity.ac.uk/[DC Labs] at University of York happens to have a dataset of DotA2 games, including movement data. The dataset is not publicly available, but he us allowed to showcase a match for this blog post.
+The good Prof. Anders Drachen from the link:http://www.digitalcreativity.ac.uk/[DC Labs] at University of York happens to have a dataset of DotA2 games, including movement data. The dataset is not publicly available, but he allowed us to showcase a match for this blog post.
 
 The data of each match was provided in a CSV file with a series of columns containing heroes data over time, plus a column indicating the time, labelled `tick`. We will use this data for the rest of the post. The columns we will use are spatial coordinates, cumulative death counters and a flag indicating whether the hero was alive at the time (as opposed to being dead and waiting to respawn). Column names follow a specific pattern, which can be matched against to extract information about the players. The data in all columns (except time) is sparse, meaning that values are only present when a value changes. Let's load the data, forward-fill the data, and visualise a random row:
 
@@ -197,7 +201,7 @@ The data of each match was provided in a CSV file with a series of columns conta
 [source,python]
 ----
 # Load and display data
-df = pd.read_csv('2842231742.csv')
+df = pd.read_csv('data/2842231742.csv')
 cols = [col for col in df.columns if
         col.startswith('X_') or
         col.startswith('Y_') or
@@ -260,10 +264,10 @@ Now we have player IDs, their team, hero names and whether the team won or lost.
 # Set styles
 styles = {}
 for player_id, team, hero, outcome in players:
-    color = '#0088FF' if team == 'D' else '#FF530D'
+    color = '#0088FF' if team == 'R' else '#FF530D'
     styles[hero] = {
         'mode': 'lines',
-        'line': go.Line(color=color),
+        'line': go.scatter3d.Line(color=color),
         'legendgroup': hero.replace('_', ' ').title(),
         'name': '{hero} ({team})'.format(hero=hero.replace('_', ' ').title(), team=team)
     }
@@ -317,7 +321,8 @@ for player_id, team, hero, outcome in players:
     # Pairwise iterate death and spawn locations (misaligned on purpose with those NaNs)
     for death_loc, spawn_loc in zip(death_locs, spawn_locs):
         style = deepcopy(styles[hero])
-        style['line'] = go.Line(color=style['line']['color'], dash='dash')
+        # noinspection PyTypeChecker
+        style['line'] = go.scatter3d.Line(color=style['line']['color'], dash='dash')
         xx = [death_loc[0], spawn_loc[0]]
         yy = [death_loc[1], spawn_loc[1]]
         zz = [death_loc[2], spawn_loc[2]]
@@ -329,7 +334,7 @@ for player_id, team, hero, outcome in players:
         traces.append(trace)
 ----
 
-The last step is to add a legend, hero-by-hero, which can be used to turn off single lines (hence having a style for each hero instead of one per team).
+The last step is to add a legend which can be used to turn off single hero lines (hence having a style for each hero instead of one per team).
 
 .Setting up the legend
 [source,python]
@@ -343,7 +348,7 @@ for legend_group, style in styles.items():
     traces.append(trace)
 ----
 
-The final step is to generate and save the final result.
+The final step is to generate and save the final result. We will use the orthographic projection, which allows to more easily inspect space-time cubes from the top or the sides.
 
 .Visualising the result
 [source,python]
@@ -359,30 +364,34 @@ surf = go.Surface(
     showscale=False
 )
 
-
 layout = go.Layout(
-    width=800,
-    height=800,
     margin=dict(l=0,r=0,b=0,t=0),
-    scene=go.Scene(
-        xaxis=go.XAxis(title='', showticklabels=False),
-        yaxis=go.YAxis(title='', showticklabels=False),
-        zaxis=go.ZAxis(title='Time (s)'),
-        aspectratio=dict(x=1, y=1, z=1.8)
+    scene=go.layout.Scene(
+        xaxis=go.layout.scene.XAxis(title='', showticklabels=False),
+        yaxis=go.layout.scene.YAxis(title='', showticklabels=False),
+        zaxis=go.layout.scene.ZAxis(title='Time (s)'),
+        aspectratio=dict(x=1, y=1, z=1.3),
+        camera=go.layout.scene.Camera(
+            projection=go.layout.scene.camera.Projection(
+                type='orthographic'
+            )
+        )
     )
 )
-fig = go.Figure(data=go.Data([surf] + traces), layout=layout)
-iplot(fig, filename='dota2-terrain-and-paths')
-plot(fig, filename='dota2-space-time-cube.html', auto_open=False)
+fig = go.Figure(data=[surf] + traces, layout=layout)
+iplot(fig, filename=f'terrain-64colors+paths.html')
 ----
 
-++++
-<iframe src="dota2-space-time-cube.html" height="850" width="950" frameborder="0"></iframe>
-++++
+//++++
+//<iframe src="terrain-64colors-improved+paths.html" height="850" width="950" frameborder="0"></iframe>
+//++++
+video::5GKRzy8d6pA[youtube,width=800,height=600]
 
 === Bonus - improving the map looks
-If you zoom in on the terrain, you can notice artifacts between colours. This is an unwanted consequence of bringing down a 3-dimensional space (the space of RGB colours) to a 1-dimensional space (the colormap). When we did that, we artificially put an order to the colours, and now when Plotly wants to smoothly transition from colour A to colour B, it will use all the colours in between A and B.
+If you zoom in on the first terrain visualisation, you can notice artifacts between colours. This is an unwanted consequence of bringing down a 3-dimensional space (the space of RGB colours) to a 1-dimensional space (the colormap). When we did that, we artificially put an order to the colours, and now when Plotly wants to smoothly transition from colour A to colour B, it will use all the colours in between A and B.
 Since the colours are arranged in whatever order numpy found them in, it can happen that black is in between two shades of green: this will cause there being a black line between any two adjacent pixels with those shades of green. There is no way around this, but there is a way to mitigate this effect: sorting the colours such that they are in a "visually smooth" order, whatever that means.
+
+video::DEwx2nfEoYQ[youtube,width=800,height=600]
 
 The way I approached this problem is to find the "shortest visual path" through all the colours. This is an instance of the famous link:https://en.wikipedia.org/wiki/Travelling_salesman_problem[Traveling Salesman Problem], and as such is NP-hard. As far as science knows, there is no way to  solve this problem efficiently; that is, there is no way to find _the best_ solution.
 However, there are a number of algorithms to compute approximate solutions. The first coming to my mind are link:https://en.wikipedia.org/wiki/Metaheuristic[meta-heuristics], strategies to solve optimisation problems that "tend to work"; the most famous examples are evolutionary computation algorithms. Conveniently, there is a Python package that approximately solves the TSP problem using link:https://en.wikipedia.org/wiki/Ant_colony_optimization_algorithms[ant-colony optimisation], link:https://pypi.org/project/ACO-Pants/[ACO-pants].
@@ -395,7 +404,6 @@ We are all set to solve the problem.
 [#listing:sort-colors]
 [source,python]
 ----
-# Sort colours
 from colormath.color_diff import delta_e_cie2000
 from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
@@ -409,13 +417,21 @@ def rgb_distance(color1, color2):
 colors = [tuple(c) for c in colors]
 solution = Solver().solve(World(colors, rgb_distance))
 colors = np.array(solution.tour)
-print(colors.shape)
+print(f"Sorted colors array: {colors.shape[0]}x{colors.shape[1]}")
 show_colors(colors)
 ----
 
-++++
-<iframe src="dota2-terrain-improved.html" height="850" width="950" frameborder="0"></iframe>
-++++
+//++++
+//<iframe src="terrain-64colors-improved.html" height="850" width="950" frameborder="0"></iframe>
+//++++
+video::xLMuQ_dQiRU[youtube,width=800,height=600]
+
+== Conclusion
+In this blog post we saw how to visualise space-time data using Python and Plotly, and dealt with the library limitations to achieve our objective.
+This type of visualisation, while not new, has only recently become accessible to many with the advent of powerful visualisation libraries such as Plotly.
+I hope space-time cubes will help you to find great insights into your data and bring you some nerd joy!
+You can find the whole code used in this post in my repo
+
 
 == Bibliography
 bibliography::[]
