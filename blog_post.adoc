@@ -435,7 +435,7 @@ video::xLMuQ_dQiRU[youtube,width=800,height=600]
 In this blog post we saw how to visualise space-time data using Python and Plotly, and dealt with the library limitations to achieve our objective.
 This type of visualisation, while not new, has only recently become accessible to many with the advent of powerful visualisation libraries such as Plotly.
 I hope space-time cubes will help you to find great insights into your data and bring you some nerd joy!
-You can find the whole code used in this post in my repo
+You can find the whole code used in this post in link:https://github.com/marcotama/dstil_blog_post_1_space_time_cube[my repo].
 
 
 == Bibliography
