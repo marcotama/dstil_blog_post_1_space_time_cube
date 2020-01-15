@@ -6,9 +6,14 @@
 = Visualising Space-Time Data
 
 == Introduction
-In this blog post we will show how to visualise *space-time data* using a visualisation called _space-time cube_ using Python and Plotly.
-A space-time cube is a 3D cartesian plot where one of the three axes (the vertical, usually) represents time, while the others represent space.
-Plotly allows us to produce interactive visualisations, which are much easier to inspect than static "snapshots" of space-time cubes.
+In this blog post we show how to visualise space-time data using a visualisation called space-time cube using Python and Plotly. A space-time cube is a 3D cartesian plot where one of the three axes (the vertical, usually) represents time, while the others represent space.
+
+This technique enables a data analyst to better visualise movements over time, be it player movements in sports and video games, or soldier movements in military simulations. This can help one see at a glance patterns both in space and in time, such as competing players meeting in certain areas of the map, or soldiers being more likely to succeed when reaching the objective location early.
+
+Plotly allows us to produce interactive visualisations, which are much easier to inspect than static "snapshots" of space-time cubes. This allows the analyst to more easily form a mental model of the data being presented, as she explores the plot from various points of view, rotating it interactively to change perspective.
+
+In the context of this article, we will be using a DOTA 2 dataset to generate a space-time cube. DOTA 2 is a video game played by two teams of 5 players with competing objectives and it is highly location-based, which makes it a perfect candidate for spatio-temporal analysis.
+
 
 
 == The problem
@@ -52,7 +57,7 @@ As a use-case, we will take a video game, link:http://www.dota2.com/[_Defense of
 [#dota2_map]
 .The map used in DotA 2 (version 7.07, source: https://dota2.gamepedia.com/File:Minimap_7.07.png[Gamepedia]).
 [link=https://dota2.gamepedia.com/File:Minimap_7.07.png]
-image::images/dota2_minimap.png[Hyades in 3D through time,300,200,align="center"]
+image::images/dota2_minimap.png[Hyades in 3D through time,600,400,align="center"]
 
 To start with, we need to reduce the number of colours present in the image. We can achieve this in several ways. To keep this blog post limited, we will use an external tool, link:http://www.imagemagick.org/Usage/quantize/#colors[ImageMagick] to do the job. While we are at it, we will also crop and resize the image, because high resolutions are rendered slowly and high numbers of colours will look worse (more on this later).
 
