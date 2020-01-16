@@ -71,6 +71,7 @@ n_colors = colors.shape[0]
 print("Success!")
 print(f"Colors array: {colors.shape[0]}x{colors.shape[1]}")
 print()
+
 # Show colors
 def show_colors(colors):
     # colors_matrix = np.reshape(colors, [4, n_colors // 4, 3])
@@ -103,7 +104,7 @@ surf = go.Surface(
     showscale=False
 )
 fig = go.Figure(data=[surf], layout=go.Layout())
-plot(fig, filename='terrain.html', auto_open=False)
+plot(fig, filename=f'terrain-{NUM_COLORS}colors.html', auto_open=False)
 print("Success!")
 print(f"File stored as 'terrain-{NUM_COLORS}colors.html'")
 print()
@@ -288,7 +289,7 @@ layout = go.Layout(
     )
 )
 fig = go.Figure(data=[surf] + traces, layout=layout)
-plot(fig, filename=f'terrain-{NUM_COLORS}colors-improved+paths.html', auto_open=False)
+plot(fig, filename=f'terrain-{NUM_COLORS}colors-improved+paths-orthographic.html', auto_open=False)
 print("Success!")
 print(f"File stored as 'terrain-{NUM_COLORS}colors-improved+paths-orthographic.html'")
 print()
